@@ -120,7 +120,7 @@ DWORD WINAPI listenAndPrint(LPVOID lpParameter){
         {
             
             buffer[amountRecived] = 0;
-            printf("Response was %s", buffer);
+            printf("%s\n", buffer);
         }
         
         
@@ -158,11 +158,18 @@ int main(){
 
 
     if (result == 0)
-        printf("connection is successful\n");
+        printf("connection is successful\n\n");
     else{
-        printf("connection failed\n");
+        printf("connection failed\n\n");
         exit(0);
     }
+
+
+    char *name = NULL;
+    size_t nameSize = 0;
+    printf("Please Enter your name:\n");
+    SSIZE_T nameCount = getline(&name, &nameSize, stdin);
+    name[nameCount-1]=0;
 
 
     // reading a line from the terminal using stdin
@@ -173,20 +180,28 @@ int main(){
 
     startListeningAndPrintMessagesOnNewThread(socketFD);
 
+    char joinedChatText[256];
+    sprintf(joinedChatText, "%s have joined the chat", name);
+    send(socketFD, joinedChatText, strlen(joinedChatText), 0);
+
+    char buffer[1024];
+
     while (1)
     {
-
         //get line function returns the char count (the count of chracters read from the terminal)
-        SSIZE_T charCount = getline(&line, &lineSize, stdin);
+        SSIZE_T lineCount = getline(&line, &lineSize, stdin);
+        line[lineCount-1]=0;
+
+        sprintf(buffer, "%s: %s", name, line);
 
         // check if the message is not empty
         //if the message is exit break out the loop
         //else send the message
-        if (charCount > 0)
+        if (lineCount > 0)
         {
-            if (strcmp(line, "exit\n") == 0)
+            if (strcmp(line, "exit") == 0)
                 break;
-            SSIZE_T amountWasSent = send(socketFD, line, charCount, 0);
+            SSIZE_T amountWasSent = send(socketFD, buffer, strlen(buffer), 0);
         }
         
         
