@@ -107,6 +107,41 @@ size_t getline(char **lineptr, size_t *n, FILE *stream) {
     return p - bufptr - 1;
 }
 
+
+DWORD WINAPI listenAndPrint(LPVOID lpParameter){
+    int socketFD = *(int *)lpParameter;
+    char buffer[1024];
+    // keep reciving messages from clients
+    while (1)
+    {
+        
+        SSIZE_T amountRecived = recv(socketFD, buffer, 1024, 0);
+        if (amountRecived > 0)
+        {
+            
+            buffer[amountRecived] = 0;
+            printf("Response was %s", buffer);
+        }
+        
+        
+        // if recived amount is zero there is an error or the client closed the connection
+        //break from the loop then shutdown the server
+        if (amountRecived == 0)
+            break;
+        
+    }
+}
+
+
+void startListeningAndPrintMessagesOnNewThread(int socketFD){
+
+    int* socketFDPtr = (int*)malloc(sizeof(int));
+    *socketFDPtr = socketFD;
+    HANDLE thread = CreateThread(NULL, 0, listenAndPrint, 
+                                    (LPVOID)socketFDPtr, 0, NULL);
+
+}
+
 int main(){
 
     wslInit();
@@ -135,6 +170,8 @@ int main(){
     char *line = NULL;
     size_t lineSize = 0;
     printf("Type a message (enter exit to exit the group chat):\n");
+
+    startListeningAndPrintMessagesOnNewThread(socketFD);
 
     while (1)
     {
