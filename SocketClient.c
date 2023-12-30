@@ -1,5 +1,6 @@
 #include<Windows.h>
 #include<stdio.h>
+#include<stdlib.h>
 
 #ifndef UNICODE
 #define UNICODE
@@ -7,19 +8,61 @@
 
 #define WIN32_LEAN_AND_MEAN
 
-#pragma comment(lib, "ws2_32.lib")s
+#pragma comment(lib, "ws2_32.lib")
+
+void wslInit();
+int createTCPIpv4Socket();
+struct sockaddr_in* CreateIPv4Address(char* ip, int port);
 
 int main(){
 
+    wslInit();
 
+    int socketFD = createTCPIpv4Socket();
+
+    /*
+        we can use the socket file descriptor to connect to an idle socket
+        we have to specifiy the address of the service we used the sockaddr_in struct to represent ipv4 address
+        or we can use sockaddr_in6 to for ipv6
+    */
+    struct sockaddr_in* address = CreateIPv4Address("127.0.0.1", 2000);
+    int result = connect(socketFD, (SOCKADDR *) address, sizeof(*address));
+
+
+    if (result == 0)
+        printf("connection is successful\n");
+    else{
+        printf("connection failed\n");
+        exit(0);
+    }
+
+
+    char* messagee;
+    messagee = "GET \\ HTTP/1.1\r\nHOST:google.com\r\n\r\n";
+    send(socketFD, messagee, strlen(messagee), 0);
+
+    char buffer[1024];
+    recv(socketFD, buffer, 1024, 0);
+
+    printf("Response was %s\n", buffer);
+
+    closesocket(socketFD); //close the socket
+    WSACleanup(); // clean up the Windows Sockets library
+}
+
+
+// reusable function used to initialize the Windows Sockets library
+void wslInit(){
     // WSAStartup function is used to initialize the Windows Sockets library
     WSADATA wsaData;
-
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         printf("WSAStartup failed\n");
-        return 1;
+        exit(1);
     }
-    
+}
+
+// reusable function used to create the ipv4 socket
+int createTCPIpv4Socket(){
     /*
         AF_INET means IPv4
         SOCK_STREAM means TCP socket
@@ -36,31 +79,17 @@ int main(){
         return 1;
     }
 
-
-    /*
-        we can use the socket file descriptor to connect to an idle socket
-        we have to specifiy the address of the service we used the sockaddr_in struct to represent ipv4 address
-        or we can use sockaddr_in6 to for ipv6
-    */
-
-    char* ip = "142.250.188.46";
-    struct sockaddr_in address;
-    address.sin_port = htons(80);  //server port, htons function wraps the port number and it get the bytes inside it
-    address.sin_family = AF_INET;  //IPv4
-    address.sin_addr.s_addr = inet_addr(ip); // the ip address the inet_addr function converets the string to an unsigend int
+    return socketFD;
+}
 
 
-    int result = connect(socketFD, (SOCKADDR *) &address, sizeof(address));
-
-    if (result == 0)
-        printf("connection is successful");
-    else
-        printf("connection failed");
-
-    closesocket(socketFD); //close the socket
-    WSACleanup(); // clean up the Windows Sockets library
-    
-
+// reusable function used to create the ipv4 address
+struct sockaddr_in* CreateIPv4Address(char* ip, int port){
+    struct sockaddr_in* address = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
+    address->sin_port = htons(port);  //server port, htons function wraps the port number and it get the bytes inside it
+    address->sin_family = AF_INET;  //IPv4
+    address->sin_addr.s_addr = inet_addr(ip); // the ip address the inet_addr function converets the string to an unsigend int
+    return address;
 }
 
 /*
