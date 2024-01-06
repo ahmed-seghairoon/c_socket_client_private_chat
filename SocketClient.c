@@ -172,19 +172,23 @@ int main(){
     name[nameCount-1]=0;
 
 
+    char buffer[1024];
+    sprintf(buffer, "%s%s", "/setname:",name);
+
+    send(socketFD, buffer, strlen(buffer), 0);
+
+
     // reading a line from the terminal using stdin
     // using line as the message buffer
     char *line = NULL;
     size_t lineSize = 0;
-    printf("Type a message (enter exit to exit the group chat):\n");
+    printf("Type a message (enter exit to exit the group chat):\n\n");
 
     startListeningAndPrintMessagesOnNewThread(socketFD);
 
-    char joinedChatText[256];
-    sprintf(joinedChatText, "%s have joined the chat", name);
-    send(socketFD, joinedChatText, strlen(joinedChatText), 0);
-
-    char buffer[1024];
+    // char joinedChatText[256];
+    // sprintf(joinedChatText, "%s have joined the chat", name);
+    // send(socketFD, joinedChatText, strlen(joinedChatText), 0);
 
     while (1)
     {
@@ -192,15 +196,17 @@ int main(){
         SSIZE_T lineCount = getline(&line, &lineSize, stdin);
         line[lineCount-1]=0;
 
-        sprintf(buffer, "%s: %s", name, line);
+        sprintf(buffer, "%s",line);
 
         // check if the message is not empty
         //if the message is exit break out the loop
         //else send the message
         if (lineCount > 0)
         {
-            if (strcmp(line, "exit") == 0)
+            if (strcmp(line, "exit") == 0){
+                send(socketFD, "/exit:", strlen("/exit:"), 0);
                 break;
+            }
             SSIZE_T amountWasSent = send(socketFD, buffer, strlen(buffer), 0);
         }
         
