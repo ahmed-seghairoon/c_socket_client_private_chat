@@ -182,7 +182,7 @@ int main(){
     // using line as the message buffer
     char *line = NULL;
     size_t lineSize = 0;
-    printf("Type a message (enter exit to exit the group chat):\n\n");
+    printf("\nType a message in the format username > message\n(enter exit to exit the group chat):\n\n");
 
     startListeningAndPrintMessagesOnNewThread(socketFD);
 
