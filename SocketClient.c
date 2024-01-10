@@ -149,13 +149,20 @@ int calculateParity(char *message)
     return ones % 2;
 }
 
-void detectErrors(char *message){
+void detectErrors(char *message, int socketFD){
     char errorBit = message[strlen(message) - 1];
     message[strlen(message) - 1] = '\0';
     int parity = calculateParity(message);
 
-    if ((parity == 1 && errorBit != '1') || (parity == 0 && errorBit != '0'))
-        printf("ERROR DETECTED\n");
+    if ((parity == 1 && errorBit != '1') || (parity == 0 && errorBit != '0')){
+        printf("error detected retrying\n");
+        send(socketFD, "/MERR:", strlen("/MERR:"), 0);
+    }
+    else{
+            char decodedMessage[1024];
+            binaryToText(message, decodedMessage);
+            printf("%s\n", decodedMessage);
+    }
     
     
 }
@@ -175,10 +182,7 @@ DWORD WINAPI listenAndPrint(LPVOID lpParameter){
 
             if (buffer[0] == '1' || buffer[0] == '0')
             {
-                char decodedMessage[1024];
-                detectErrors(buffer);
-                binaryToText(buffer, decodedMessage);
-                printf("%s\n", decodedMessage);
+                detectErrors(buffer, socketFD);
             }else{
                 printf("%s\n", buffer);
             }
