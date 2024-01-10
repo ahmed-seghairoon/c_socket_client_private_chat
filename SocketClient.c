@@ -107,20 +107,82 @@ size_t getline(char **lineptr, size_t *n, FILE *stream) {
     return p - bufptr - 1;
 }
 
+unsigned long binaryToDecimal(char *binary, int length)
+{
+	int i;
+	unsigned long decimal = 0;
+	unsigned long weight = 1;
+	binary += length - 1;
+	weight = 1;
+	for(i = 0; i < length; ++i, --binary)
+	{
+		if(*binary == '1')
+			decimal += weight;
+		weight *= 2;
+	}
+	
+	return decimal;
+}
+
+
+void binaryToText(char *binary, char *text)
+{
+    int binaryLength = strlen(binary);
+    int symbolCount = (binaryLength / 8);
+
+    for(int i = 0; i < binaryLength; i+=8, binary += 8)
+    {
+        char *byte = binary;
+        byte[8] = '\0';
+        *text++ = binaryToDecimal(byte, 8);
+    }
+    *(text) = 0;
+}
+
+int calculateParity(char *message)
+{
+    int ones = 0;
+    for (int i = 0; i < strlen(message); i++)
+        if (*(message + i) == '1')
+            ones++;
+
+    return ones % 2;
+}
+
+void detectErrors(char *message){
+    char errorBit = message[strlen(message) - 1];
+    message[strlen(message) - 1] = '\0';
+    int parity = calculateParity(message);
+
+    if ((parity == 1 && errorBit != '1') || (parity == 0 && errorBit != '0'))
+        printf("ERROR DETECTED\n");
+    
+    
+}
+
 
 DWORD WINAPI listenAndPrint(LPVOID lpParameter){
     int socketFD = *(int *)lpParameter;
-    char buffer[1024];
+    char buffer[5000];
     // keep reciving messages from clients
     while (1)
     {
-        
-        SSIZE_T amountRecived = recv(socketFD, buffer, 1024, 0);
+        buffer[0] = '\0';
+        SSIZE_T amountRecived = recv(socketFD, buffer, 5000, 0);
         if (amountRecived > 0)
         {
-            
             buffer[amountRecived] = 0;
-            printf("%s\n", buffer);
+
+            if (buffer[0] == '1' || buffer[0] == '0')
+            {
+                char decodedMessage[1024];
+                detectErrors(buffer);
+                binaryToText(buffer, decodedMessage);
+                printf("%s\n", decodedMessage);
+            }else{
+                printf("%s\n", buffer);
+            }
+            
         }
         
         
